@@ -150,6 +150,7 @@ npx reskill@latest list
 | `npx reskill@latest update [skill]` | Update all or specific skill |
 | `npx reskill@latest outdated` | Check for outdated skills |
 | `npx reskill@latest uninstall <skill>` | Remove a skill |
+| `npx reskill@latest doctor` | Diagnose environment and check for issues |
 | `npx reskill@latest completion install` | Install shell tab completion |
 
 Run `npx reskill@latest <command> --help` for detailed options.
@@ -178,6 +179,55 @@ reskill install -a <Tab>   # Complete agent names
 ```
 
 To remove completion: `reskill completion uninstall`
+
+### Environment Diagnostics
+
+The `doctor` command helps diagnose your reskill environment and identify potential issues:
+
+```bash
+# Run full diagnostics
+reskill doctor
+
+# Skip network checks (faster)
+reskill doctor --skip-network
+
+# Output as JSON (for scripts)
+reskill doctor --json
+```
+
+Example output:
+
+```
+🩺 Checking reskill environment...
+
+✓ reskill version        0.17.1 (latest)
+✓ Node.js version        v18.20.2 (>=18.0.0 required)
+✓ Git                    2.39.3
+✓ Git authentication     SSH key found
+✓ Cache directory        ~/.reskill-cache (65.8 KB, 2 skills cached)
+✓ skills.json            found (3 skills declared)
+✓ skills.lock            in sync (3 skills locked)
+✓ Installed skills       3 skills installed
+✓ Network (github.com)   reachable
+✓ Network (gitlab.com)   reachable
+
+✅ All checks passed! reskill is ready to use.
+```
+
+The doctor command checks:
+
+| Check | Description |
+|-------|-------------|
+| **reskill version** | Current version and update availability |
+| **Node.js version** | Requires >=18.0.0 |
+| **Git** | Git installation and version |
+| **Git authentication** | SSH keys or credential helpers |
+| **Cache directory** | Cache path, size, and cached skills count |
+| **skills.json** | Configuration file existence and validity |
+| **skills.lock** | Lock file sync status with skills.json |
+| **Installed skills** | Skill integrity (missing files, invalid JSON, broken symlinks) |
+| **Config validation** | Registry conflicts, dangerous paths, invalid agents |
+| **Network** | GitHub and GitLab connectivity |
 
 ## Private GitLab Support
 

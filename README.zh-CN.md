@@ -151,6 +151,7 @@ npx reskill@latest list
 | `npx reskill@latest update [skill]`     | 更新所有或指定 skill                            |
 | `npx reskill@latest outdated`           | 检查过期的 skills                               |
 | `npx reskill@latest uninstall <skill>`  | 卸载 skill                                      |
+| `npx reskill@latest doctor`             | 诊断环境并检查问题                              |
 | `npx reskill@latest completion install` | 安装 Shell Tab 补全                             |
 
 运行 `npx reskill@latest <command> --help` 查看详细选项。
@@ -179,6 +180,55 @@ reskill install -a <Tab>   # 补全 agent 名称
 ```
 
 卸载补全：`reskill completion uninstall`
+
+### 环境诊断
+
+`doctor` 命令帮助诊断 reskill 环境并发现潜在问题：
+
+```bash
+# 运行完整诊断
+reskill doctor
+
+# 跳过网络检查（更快）
+reskill doctor --skip-network
+
+# JSON 格式输出（供脚本使用）
+reskill doctor --json
+```
+
+输出示例：
+
+```
+🩺 Checking reskill environment...
+
+✓ reskill version        0.17.1 (latest)
+✓ Node.js version        v18.20.2 (>=18.0.0 required)
+✓ Git                    2.39.3
+✓ Git authentication     SSH key found
+✓ Cache directory        ~/.reskill-cache (65.8 KB, 2 skills cached)
+✓ skills.json            found (3 skills declared)
+✓ skills.lock            in sync (3 skills locked)
+✓ Installed skills       3 skills installed
+✓ Network (github.com)   reachable
+✓ Network (gitlab.com)   reachable
+
+✅ All checks passed! reskill is ready to use.
+```
+
+doctor 命令检查项：
+
+| 检查项                 | 说明                                              |
+| ---------------------- | ------------------------------------------------- |
+| **reskill version**    | 当前版本及是否有更新可用                          |
+| **Node.js version**    | 需要 >=18.0.0                                     |
+| **Git**                | Git 是否安装及版本号                              |
+| **Git authentication** | SSH key 或 credential helper 是否配置             |
+| **Cache directory**    | 缓存路径、大小和已缓存的 skill 数量               |
+| **skills.json**        | 配置文件是否存在及有效                            |
+| **skills.lock**        | 锁文件与 skills.json 的同步状态                   |
+| **Installed skills**   | skill 完整性（缺失文件、无效 JSON、失效符号链接） |
+| **Config validation**  | Registry 冲突、危险路径、无效 agent 配置          |
+| **Network**            | GitHub 和 GitLab 连通性                           |
 
 ## 私有 GitLab 支持
 
