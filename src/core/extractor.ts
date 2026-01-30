@@ -7,7 +7,6 @@
 
 import { createWriteStream, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { pipeline } from 'node:stream/promises';
 import { createGunzip } from 'node:zlib';
 import { extract, type Headers } from 'tar-stream';
 

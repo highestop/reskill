@@ -8,7 +8,6 @@
  * Uses RegistryClient to download and verify skills.
  */
 
-import { HttpResolver } from './http-resolver.js';
 import { RegistryClient } from './registry-client.js';
 import { extractTarballBuffer, getTarballTopDir } from './extractor.js';
 import {

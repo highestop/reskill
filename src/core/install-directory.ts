@@ -6,7 +6,6 @@
  */
 
 import { existsSync, mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { agents, type AgentType } from './agent-registry.js';
 
@@ -76,7 +75,6 @@ export interface DetectOptions {
 export async function detectInstallDirectory(options: DetectOptions = {}): Promise<string> {
   const { global: isGlobal = false, cwd } = options;
   const baseDir = cwd || process.cwd();
-  const home = homedir();
 
   // 全局安装：检测全局安装的 agent
   if (isGlobal) {
