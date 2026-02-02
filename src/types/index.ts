@@ -285,3 +285,37 @@ export interface ListOptions {
   /** JSON format output */
   json?: boolean;
 }
+
+// ============================================================================
+// Registry API 相关类型（用于页面发布功能适配）
+// ============================================================================
+
+/**
+ * Skill 来源类型
+ * - registry: CLI 发布（支持版本管理）
+ * - github/gitlab: 页面发布 Remote URL（Git 仓库）
+ * - oss_url/custom_url: 页面发布 Remote URL（HTTP 链接）
+ * - local: 页面发布 Local Folder（上传到 OSS）
+ */
+export type SourceType = 'registry' | 'github' | 'gitlab' | 'oss_url' | 'custom_url' | 'local';
+
+/**
+ * Registry API 返回的 Skill 基本信息
+ * 用于 install 命令判断安装逻辑分支
+ */
+export interface SkillInfo {
+  /** Skill 完整名称，如 @kanyun/my-skill */
+  name: string;
+  /** 描述 */
+  description?: string;
+  /** 来源类型，默认 'registry'（CLI 发布） */
+  source_type?: SourceType;
+  /** 来源 URL（仅页面发布时有值） */
+  source_url?: string;
+  /** 发布者 ID */
+  publisher_id?: string;
+  /** 创建时间 */
+  created_at?: string;
+  /** 更新时间 */
+  updated_at?: string;
+}

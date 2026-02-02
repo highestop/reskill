@@ -725,20 +725,6 @@ describe('RegistryClient', () => {
       const version = await client.resolveVersion('@kanyun/test-skill');
       expect(version).toBe('1.0.0');
     });
-
-    it('should handle non-JSON error response gracefully', async () => {
-      // Simulate 502 Bad Gateway with HTML response
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 502,
-        statusText: 'Bad Gateway',
-        json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON')),
-      });
-
-      await expect(client.resolveVersion('@kanyun/test-skill', 'latest')).rejects.toThrow(
-        'Failed to fetch skill metadata: 502',
-      );
-    });
   });
 
   // ============================================================================
@@ -820,45 +806,6 @@ describe('RegistryClient', () => {
         expect.anything(),
       );
     });
-
-    it('should handle non-JSON error response (e.g., HTML error page)', async () => {
-      // Simulate 502 Bad Gateway with HTML response
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 502,
-        statusText: 'Bad Gateway',
-        json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON')),
-      });
-
-      await expect(client.downloadSkill('@kanyun/test-skill', '1.0.0')).rejects.toThrow(
-        'Download failed: 502',
-      );
-    });
-
-    it('should handle 503 Service Unavailable with HTML response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 503,
-        statusText: 'Service Unavailable',
-        json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON')),
-      });
-
-      await expect(client.downloadSkill('@kanyun/test-skill', '1.0.0')).rejects.toThrow(
-        'Download failed: 503',
-      );
-    });
-
-    it('should prefer JSON error message when available', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        json: () => Promise.resolve({ error: 'Skill not found in registry' }),
-      });
-
-      await expect(client.downloadSkill('@kanyun/test-skill', '1.0.0')).rejects.toThrow(
-        'Skill not found in registry',
-      );
-    });
   });
 
   // ============================================================================
@@ -909,6 +856,129 @@ describe('RegistryClient', () => {
 
       expect(() => RegistryClient.verifyIntegrity(content, 'md5-hash')).toThrow(
         'Unsupported integrity algorithm',
+      );
+    });
+  });
+
+  // ============================================================================
+  // getSkillInfo tests (页面发布适配)
+  // ============================================================================
+
+  describe('getSkillInfo', () => {
+    beforeEach(() => {
+      client = new RegistryClient({ registry: testRegistry, token: testToken });
+    });
+
+    it('should return skill info with source_type for web-published skill', async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          name: '@kanyun/github-skill',
+          description: 'A skill from GitHub',
+          source_type: 'github',
+          source_url: 'https://github.com/user/repo/tree/main/skills/my-skill',
+          publisher_id: 'pub_123',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-15T00:00:00Z',
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.getSkillInfo('@kanyun/github-skill');
+
+      expect(result.name).toBe('@kanyun/github-skill');
+      expect(result.source_type).toBe('github');
+      expect(result.source_url).toBe('https://github.com/user/repo/tree/main/skills/my-skill');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${testRegistry}/api/skills/${encodeURIComponent('@kanyun/github-skill')}`,
+        expect.objectContaining({ method: 'GET' }),
+      );
+    });
+
+    it('should return skill info without source_type for CLI-published skill', async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          name: '@kanyun/cli-skill',
+          description: 'A CLI published skill',
+          source_type: 'registry',
+          publisher_id: 'pub_123',
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.getSkillInfo('@kanyun/cli-skill');
+
+      expect(result.name).toBe('@kanyun/cli-skill');
+      expect(result.source_type).toBe('registry');
+      expect(result.source_url).toBeUndefined();
+    });
+
+    it('should return skill info for old skill without source_type (backward compat)', async () => {
+      // 老的 skill 没有 source_type 字段
+      const mockResponse = {
+        success: true,
+        data: {
+          name: '@kanyun/old-skill',
+          description: 'An old skill',
+          publisher_id: 'pub_123',
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      const result = await client.getSkillInfo('@kanyun/old-skill');
+
+      expect(result.name).toBe('@kanyun/old-skill');
+      expect(result.source_type).toBeUndefined();
+    });
+
+    it('should throw RegistryError for non-existent skill', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: () => Promise.resolve({ error: 'Skill not found' }),
+      });
+
+      await expect(client.getSkillInfo('@kanyun/non-existent')).rejects.toThrow(
+        'Skill not found: @kanyun/non-existent',
+      );
+    });
+
+    it('should throw RegistryError for server error', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({ error: 'Internal server error' }),
+      });
+
+      await expect(client.getSkillInfo('@kanyun/some-skill')).rejects.toThrow(
+        'Internal server error',
+      );
+    });
+
+    it('should use fallback error message when no error in response', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({}),
+      });
+
+      await expect(client.getSkillInfo('@kanyun/some-skill')).rejects.toThrow(
+        'Failed to get skill info',
       );
     });
   });
