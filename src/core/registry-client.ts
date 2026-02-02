@@ -11,6 +11,7 @@ import * as zlib from 'node:zlib';
 import { pack } from 'tar-stream';
 import type { PublishPayload } from './publisher.js';
 import { getShortName } from '../utils/registry-scope.js';
+import type { SkillInfo } from '../types/index.js';
 
 // ============================================================================
 // Types
@@ -227,6 +228,54 @@ export class RegistryClient {
   }
 
   // ============================================================================
+  // Skill Info Methods (页面发布适配)
+  // ============================================================================
+
+  /**
+   * 获取 skill 基本信息（包含 source_type）
+   * 用于 install 命令判断安装逻辑分支
+   *
+   * @param skillName - 完整名称，如 @kanyun/my-skill
+   * @returns Skill 基本信息
+   * @throws RegistryError 如果 skill 不存在或请求失败
+   */
+  async getSkillInfo(skillName: string): Promise<SkillInfo> {
+    const url = `${this.config.registry}/api/skills/${encodeURIComponent(skillName)}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const data = (await response.json()) as { error?: string };
+
+      // 404 时给出明确的 skill 不存在错误
+      if (response.status === 404) {
+        throw new RegistryError(
+          `Skill not found: ${skillName}`,
+          response.status,
+          data,
+        );
+      }
+
+      throw new RegistryError(
+        data.error || `Failed to get skill info: ${response.statusText}`,
+        response.status,
+        data,
+      );
+    }
+
+    // API 返回格式: { success: true, data: { ... } }
+    const responseData = (await response.json()) as {
+      success?: boolean;
+      data?: SkillInfo;
+    };
+
+    return responseData.data || (responseData as unknown as SkillInfo);
+  }
+
+  // ============================================================================
   // Download Methods (Step 3.3)
   // ============================================================================
 
@@ -259,16 +308,12 @@ export class RegistryClient {
     });
 
     if (!response.ok) {
-      let errorMessage = `Failed to fetch skill metadata: ${response.status}`;
-      try {
-        const data = (await response.json()) as { error?: string };
-        if (data.error) {
-          errorMessage = data.error;
-        }
-      } catch {
-        // Ignore JSON parse errors (e.g., HTML error pages)
-      }
-      throw new RegistryError(errorMessage, response.status);
+      const data = (await response.json()) as { error?: string };
+      throw new RegistryError(
+        data.error || `Failed to fetch skill metadata: ${response.status}`,
+        response.status,
+        data,
+      );
     }
 
     // API 返回格式: { success: true, data: { dist_tags: [{ tag, version }] } }
@@ -321,16 +366,12 @@ export class RegistryClient {
     });
 
     if (!response.ok) {
-      let errorMessage = `Download failed: ${response.status}`;
-      try {
-        const data = (await response.json()) as { error?: string };
-        if (data.error) {
-          errorMessage = data.error;
-        }
-      } catch {
-        // Ignore JSON parse errors (e.g., HTML error pages)
-      }
-      throw new RegistryError(errorMessage, response.status);
+      const data = (await response.json()) as { error?: string };
+      throw new RegistryError(
+        data.error || `Download failed: ${response.status}`,
+        response.status,
+        data,
+      );
     }
 
     const arrayBuffer = await response.arrayBuffer();
