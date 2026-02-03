@@ -28,10 +28,13 @@ npx reskill@latest list
 - **One-click install** — Install any skill from any Git repo with a single command
 - **Declarative config** — `skills.json` + `skills.lock` for team consistency
 - **Flexible versioning** — Exact versions, semver ranges, branches, commits
-- **Multi-registry** — GitHub, GitLab, self-hosted, private repos
+- **Multi-source** — GitHub, GitLab, self-hosted repos, HTTP/OSS archives
 - **Multi-agent** — Cursor, Claude Code, Codex, Windsurf, GitHub Copilot, and more
+- **Registry support** — Publish and share skills via registry
 
 ## Installation
+
+**Requirements:** Node.js >= 18.0.0
 
 ```bash
 npm install -g reskill        # Global install
@@ -40,17 +43,23 @@ npx reskill@latest <command>  # Or use npx directly
 
 ## Commands
 
-| Command               | Description                               |
-| --------------------- | ----------------------------------------- |
-| `init`                | Initialize `skills.json`                  |
-| `install [skills...]` | Install one or more skills                |
-| `list`               | List installed skills                     |
-| `info <skill>`       | Show skill details                        |
-| `update [skill]`     | Update skills                             |
-| `outdated`           | Check for outdated skills                 |
-| `uninstall <skill>`  | Remove a skill                            |
-| `doctor`             | Diagnose environment and check for issues |
-| `completion install` | Install shell tab completion              |
+| Command | Alias | Description |
+| ------- | ----- | ----------- |
+| `init` | - | Initialize `skills.json` |
+| `install [skills...]` | `i` | Install one or more skills |
+| `list` | `ls` | List installed skills |
+| `info <skill>` | - | Show skill details |
+| `update [skill]` | `up` | Update skills |
+| `outdated` | - | Check for outdated skills |
+| `uninstall <skill>` | `un`, `rm`, `remove` | Remove a skill |
+| `publish [path]` | `pub` | Publish a skill to the registry ¹ |
+| `login` | - | Authenticate with the registry ¹ |
+| `logout` | - | Remove stored authentication ¹ |
+| `whoami` | - | Display current logged in user ¹ |
+| `doctor` | - | Diagnose environment and check for issues |
+
+> ¹ Registry commands (`publish`, `login`, `logout`, `whoami`) require a private registry deployment. Not available for public use yet.
+| `completion install` | - | Install shell tab completion |
 
 ### Common Options
 
@@ -60,7 +69,10 @@ npx reskill@latest <command>  # Or use npx directly
 | `-g, --global` | `install`, `uninstall`, `list` | Install/manage skills globally (user directory) |
 | `-a, --agent <agents...>` | `install` | Specify target agents (e.g., `cursor`, `claude-code`) |
 | `--mode <mode>` | `install` | Installation mode: `symlink` (default) or `copy` |
-
+| `--all` | `install` | Install to all agents |
+| `-y, --yes` | `install`, `uninstall`, `publish` | Skip confirmation prompts |
+| `-f, --force` | `install` | Force reinstall even if already installed |
+| `-j, --json` | `list`, `info`, `outdated`, `doctor` | Output as JSON |
 
 Run `reskill <command> --help` for complete options and detailed usage.
 
@@ -70,20 +82,25 @@ Run `reskill <command> --help` for complete options and detailed usage.
 # GitHub shorthand
 npx reskill@latest install github:user/skill@v1.0.0
 
-# Full Git URL
-npx reskill@latest install https://github.com/user/skill.git
-
-# GitHub web URL (with branch and subpath)
-npx reskill@latest install https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines
-
-# GitLab
+# GitLab shorthand
 npx reskill@latest install gitlab:group/skill@latest
 
-# Private registry
+# Full Git URL (HTTPS)
+npx reskill@latest install https://github.com/user/skill.git
+
+# Full Git URL (SSH)
+npx reskill@latest install git@github.com:user/skill.git
+
+# GitHub/GitLab web URL (with branch and subpath)
+npx reskill@latest install https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines
+
+# Custom registry (self-hosted GitLab, etc.)
 npx reskill@latest install gitlab.company.com:team/skill@v1.0.0
 
-# Default registry (from skills.json)
-npx reskill@latest install user/skill@v1.0.0
+# HTTP/OSS archives
+npx reskill@latest install https://example.com/skills/my-skill-v1.0.0.tar.gz
+npx reskill@latest install oss://bucket/path/skill.tar.gz
+npx reskill@latest install s3://bucket/path/skill.zip
 
 # Install multiple skills at once
 npx reskill@latest install github:user/skill1 github:user/skill2@v1.0.0
@@ -108,15 +125,30 @@ npx reskill@latest install https://github.com/org/monorepo/tree/main/skills/plan
 
 **Requirements**: The specified directory must contain a valid `SKILL.md` file following the [Agent Skills Specification](https://agentskills.io).
 
+### HTTP/OSS URL Support
+
+Skills can be installed directly from HTTP/HTTPS URLs pointing to archive files:
+
+| Format | Example | Description |
+| ------ | ------- | ----------- |
+| HTTPS URL | `https://example.com/skill.tar.gz` | Direct download URL |
+| Aliyun OSS | `https://bucket.oss-cn-hangzhou.aliyuncs.com/skill.tar.gz` | Aliyun OSS URL |
+| AWS S3 | `https://bucket.s3.amazonaws.com/skill.tar.gz` | AWS S3 URL |
+| OSS Protocol | `oss://bucket/path/skill.tar.gz` | Shorthand for Aliyun OSS |
+| S3 Protocol | `s3://bucket/path/skill.tar.gz` | Shorthand for AWS S3 |
+
+**Supported archive formats:** `.tar.gz`, `.tgz`, `.zip`, `.tar`
+
 ## Version Specification
 
-| Format | Example           | Description          |
-| ------ | ----------------- | -------------------- |
-| Exact  | `@v1.0.0`         | Lock to specific tag |
-| Latest | `@latest`         | Get the latest tag   |
-| Range  | `@^2.0.0`         | Semver compatible    |
-| Branch | `@branch:develop` | Specific branch      |
+| Format | Example | Description |
+| ------ | ------- | ----------- |
+| Exact | `@v1.0.0` | Lock to specific tag |
+| Latest | `@latest` | Get the latest tag |
+| Range | `@^2.0.0` | Semver compatible (>=2.0.0 <3.0.0) |
+| Branch | `@branch:develop` | Specific branch |
 | Commit | `@commit:abc1234` | Specific commit hash |
+| (none) | - | Default branch (main) |
 
 ## Configuration
 
@@ -132,7 +164,9 @@ npx reskill@latest install https://github.com/org/monorepo/tree/main/skills/plan
     "internal": "https://gitlab.company.com"
   },
   "defaults": {
-    "installDir": ".skills"
+    "installDir": ".skills",
+    "targetAgents": ["cursor", "claude-code"],
+    "installMode": "symlink"
   }
 }
 ```
@@ -158,12 +192,34 @@ Skills are installed to `.skills/` by default and can be integrated with any age
 | Windsurf       | `.windsurf/skills/`                   |
 | GitHub Copilot | `.github/skills/`                     |
 
+## Publishing Skills
+
+> **Note:** Publishing requires a private registry deployment. This feature is not available for public use yet.
+
+Publish your skills to the registry for others to use:
+
+```bash
+# Login to the registry
+reskill login
+
+# Validate without publishing (dry run)
+reskill publish --dry-run
+
+# Publish the skill
+reskill publish
+```
+
+For detailed publishing guidelines, see the [CLI Specification](./docs/cli-spec.md#publish).
+
 ## Environment Variables
 
-| Variable            | Description            | Default            |
-| ------------------- | ---------------------- | ------------------ |
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
 | `RESKILL_CACHE_DIR` | Global cache directory | `~/.reskill-cache` |
-| `DEBUG`             | Enable debug logging   | -                  |
+| `RESKILL_TOKEN` | Auth token (takes precedence over ~/.reskillrc) | - |
+| `RESKILL_REGISTRY` | Default registry URL | `https://registry.reskill.dev` |
+| `DEBUG` | Enable debug logging | - |
+| `NO_COLOR` | Disable colored output | - |
 
 ## Development
 
@@ -179,6 +235,9 @@ pnpm build
 
 # Run tests
 pnpm test
+
+# Run integration tests
+pnpm test:integration
 
 # Type check
 pnpm typecheck
