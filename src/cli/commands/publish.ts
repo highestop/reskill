@@ -322,6 +322,22 @@ function displayWarnings(validation: ValidationResult): void {
 }
 
 /**
+ * Parse user's confirmation answer
+ *
+ * Default is Yes - returns true for empty input or any input except 'n'/'no'
+ *
+ * @param answer - User's input string
+ * @returns true if confirmed, false if declined
+ *
+ * @internal Exported for testing
+ */
+export function parseConfirmAnswer(answer: string): boolean {
+  const trimmed = answer.trim().toLowerCase();
+  // Default to true (Yes) if empty, only false if explicitly 'n' or 'no'
+  return trimmed !== 'n' && trimmed !== 'no';
+}
+
+/**
  * Confirm publish
  */
 async function confirmPublish(name: string, version: string, registry: string): Promise<boolean> {
@@ -331,9 +347,10 @@ async function confirmPublish(name: string, version: string, registry: string): 
   });
 
   return new Promise((resolve) => {
-    rl.question(`\n? Publish ${name}@${version} to ${registry}? (y/N) `, (answer) => {
+    // Default is Yes (capital Y), pressing Enter confirms
+    rl.question(`\n? Publish ${name}@${version} to ${registry}? (Y/n) default: yes `, (answer) => {
       rl.close();
-      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+      resolve(parseConfirmAnswer(answer));
     });
   });
 }
@@ -354,7 +371,8 @@ function displayDryRunSummary(payload: PublishPayload): void {
 
 async function publishAction(skillPath: string, options: PublishOptions): Promise<void> {
   const absolutePath = path.resolve(skillPath);
-  const registry = resolveRegistry(options.registry, absolutePath);
+  // Use cwd() as project root to find skills.json, not the skill path
+  const registry = resolveRegistry(options.registry, process.cwd());
 
   // Validate registry is not a blocked public registry
   validateRegistry(registry);
