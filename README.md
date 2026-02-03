@@ -52,11 +52,13 @@ npx reskill@latest <command>  # Or use npx directly
 | `update [skill]` | `up` | Update skills |
 | `outdated` | - | Check for outdated skills |
 | `uninstall <skill>` | `un`, `rm`, `remove` | Remove a skill |
-| `publish [path]` | `pub` | Publish a skill to the registry |
-| `login` | - | Authenticate with the registry |
-| `logout` | - | Remove stored authentication |
-| `whoami` | - | Display current logged in user |
+| `publish [path]` | `pub` | Publish a skill to the registry ¹ |
+| `login` | - | Authenticate with the registry ¹ |
+| `logout` | - | Remove stored authentication ¹ |
+| `whoami` | - | Display current logged in user ¹ |
 | `doctor` | - | Diagnose environment and check for issues |
+
+> ¹ Registry commands (`publish`, `login`, `logout`, `whoami`) require a private registry deployment. Not available for public use yet.
 | `completion install` | - | Install shell tab completion |
 
 ### Common Options
@@ -191,6 +193,8 @@ Skills are installed to `.skills/` by default and can be integrated with any age
 | GitHub Copilot | `.github/skills/`                     |
 
 ## Publishing Skills
+
+> **Note:** Publishing requires a private registry deployment. This feature is not available for public use yet.
 
 Publish your skills to the registry for others to use:
 

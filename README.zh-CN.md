@@ -52,11 +52,13 @@ npx reskill@latest <command>  # 或直接使用 npx
 | `update [skill]` | `up` | 更新 skills |
 | `outdated` | - | 检查过期的 skills |
 | `uninstall <skill>` | `un`, `rm`, `remove` | 卸载 skill |
-| `publish [path]` | `pub` | 发布 skill 到 registry |
-| `login` | - | 登录 registry |
-| `logout` | - | 登出 registry |
-| `whoami` | - | 显示当前登录用户 |
+| `publish [path]` | `pub` | 发布 skill 到 registry ¹ |
+| `login` | - | 登录 registry ¹ |
+| `logout` | - | 登出 registry ¹ |
+| `whoami` | - | 显示当前登录用户 ¹ |
 | `doctor` | - | 诊断环境并检查问题 |
+
+> ¹ Registry 相关命令（`publish`、`login`、`logout`、`whoami`）需要部署私有 registry 后才能使用，暂不对外开放。
 | `completion install` | - | 安装 Shell Tab 补全 |
 
 ### 常用选项
@@ -191,6 +193,8 @@ Skills 默认安装到 `.skills/`，可与任何 Agent 集成：
 | GitHub Copilot | `.github/skills/`                     |
 
 ## 发布 Skills
+
+> **注意：** 发布功能需要部署私有 registry 后才能使用，暂不对外开放。
 
 将你的 skills 发布到 registry 供他人使用：
 
