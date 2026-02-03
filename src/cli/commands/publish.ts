@@ -331,9 +331,12 @@ async function confirmPublish(name: string, version: string, registry: string): 
   });
 
   return new Promise((resolve) => {
-    rl.question(`\n? Publish ${name}@${version} to ${registry}? (y/N) `, (answer) => {
+    // Default is Yes (capital Y), pressing Enter confirms
+    rl.question(`\n? Publish ${name}@${version} to ${registry}? (Y/n) default: yes `, (answer) => {
       rl.close();
-      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+      const trimmed = answer.trim().toLowerCase();
+      // Default to true (Yes) if empty, only false if explicitly 'n' or 'no'
+      resolve(trimmed !== 'n' && trimmed !== 'no');
     });
   });
 }
@@ -354,7 +357,8 @@ function displayDryRunSummary(payload: PublishPayload): void {
 
 async function publishAction(skillPath: string, options: PublishOptions): Promise<void> {
   const absolutePath = path.resolve(skillPath);
-  const registry = resolveRegistry(options.registry, absolutePath);
+  // Use cwd() as project root to find skills.json, not the skill path
+  const registry = resolveRegistry(options.registry, process.cwd());
 
   // Validate registry is not a blocked public registry
   validateRegistry(registry);
