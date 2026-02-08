@@ -7,7 +7,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildFullSkillName,
-  getApiPrefix,
   getRegistryForScope,
   getRegistryUrl,
   getScopeForRegistry,
@@ -18,40 +17,6 @@ import {
 } from './registry-scope.js';
 
 describe('registry-scope', () => {
-  describe('getApiPrefix', () => {
-    it('should return /api/reskill for rush-test.zhenguanyu.com', () => {
-      expect(getApiPrefix('https://rush-test.zhenguanyu.com')).toBe('/api/reskill');
-    });
-
-    it('should return /api/reskill for rush.zhenguanyu.com', () => {
-      expect(getApiPrefix('https://rush.zhenguanyu.com')).toBe('/api/reskill');
-    });
-
-    it('should handle trailing slash', () => {
-      expect(getApiPrefix('https://rush-test.zhenguanyu.com/')).toBe('/api/reskill');
-    });
-
-    it('should return /api/reskill for localhost:3000', () => {
-      expect(getApiPrefix('http://localhost:3000')).toBe('/api/reskill');
-    });
-
-    it('should return /api for reskill-test.zhenguanyu.com (legacy reskill-app)', () => {
-      expect(getApiPrefix('https://reskill-test.zhenguanyu.com')).toBe('/api');
-    });
-
-    it('should return /api for public registry', () => {
-      expect(getApiPrefix('https://reskill.info')).toBe('/api');
-    });
-
-    it('should return /api for unknown registry', () => {
-      expect(getApiPrefix('https://unknown.com')).toBe('/api');
-    });
-
-    it('should return /api for empty string', () => {
-      expect(getApiPrefix('')).toBe('/api');
-    });
-  });
-
   describe('getScopeForRegistry', () => {
     it('should return @kanyun for rush-test.zhenguanyu.com', () => {
       expect(getScopeForRegistry('https://rush-test.zhenguanyu.com')).toBe('@kanyun');

@@ -20,8 +20,6 @@ import type { PublishPayload } from './publisher.js';
 export interface RegistryConfig {
   registry: string;
   token?: string;
-  /** API path prefix, e.g., '/api' (default) or '/api/reskill' for rush-app */
-  apiPrefix?: string;
 }
 
 export interface PublishRequest {
@@ -103,16 +101,17 @@ export class RegistryClient {
   }
 
   /**
-   * Get API base URL (registry + apiPrefix)
+   * Get API base URL (registry + /api)
    *
-   * @returns Base URL for API calls, e.g., 'https://example.com/api' or 'https://rush.com/api/reskill'
+   * All registries use the unified '/api' prefix.
+   *
+   * @returns Base URL for API calls, e.g., 'https://example.com/api'
    */
   private getApiBase(): string {
-    const prefix = this.config.apiPrefix || '/api';
     const registry = this.config.registry.endsWith('/')
       ? this.config.registry.slice(0, -1)
       : this.config.registry;
-    return `${registry}${prefix}`;
+    return `${registry}/api`;
   }
 
   /**
@@ -135,7 +134,7 @@ export class RegistryClient {
    * Get current user info (whoami)
    */
   async whoami(): Promise<WhoamiResponse> {
-    const url = `${this.getApiBase()}/auth/me`;
+    const url = `${this.getApiBase()}/skill-auth/me`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -158,14 +157,14 @@ export class RegistryClient {
   /**
    * CLI login - verify token and get user info
    *
-   * Calls POST /api/auth/login-cli to validate the token and retrieve user information.
+   * Calls POST /api/skill-auth/login-cli to validate the token and retrieve user information.
    * This is the preferred method for CLI authentication.
    *
    * @returns User information if authentication succeeds
    * @throws RegistryError if authentication fails
    */
   async loginCli(): Promise<LoginCliResponse> {
-    const url = `${this.getApiBase()}/auth/login-cli`;
+    const url = `${this.getApiBase()}/skill-auth/login-cli`;
 
     const response = await fetch(url, {
       method: 'POST',

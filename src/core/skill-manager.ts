@@ -11,7 +11,7 @@ import {
   remove,
 } from '../utils/fs.js';
 import { logger } from '../utils/logger.js';
-import { getApiPrefix, getRegistryUrl, parseSkillIdentifier } from '../utils/registry-scope.js';
+import { getRegistryUrl, parseSkillIdentifier } from '../utils/registry-scope.js';
 import {
   type AgentType,
   agents,
@@ -1061,7 +1061,7 @@ export class SkillManager {
     // 解析 skill 标识（获取 fullName 和 version）
     const parsed = parseSkillIdentifier(ref);
     const registryUrl = getRegistryUrl(parsed.scope);
-    const client = new RegistryClient({ registry: registryUrl, apiPrefix: getApiPrefix(registryUrl) });
+    const client = new RegistryClient({ registry: registryUrl });
 
     // 新增：先查询 skill 信息获取 source_type
     let skillInfo: SkillInfo;
@@ -1260,8 +1260,7 @@ export class SkillManager {
   /**
    * 安装 Local Folder 模式发布的 skill
    *
-   * 通过 Registry 的 {apiPrefix}/skills/:name/download API 下载 tarball
-   * (apiPrefix 根据 registry 不同而不同，如 /api 或 /api/reskill)
+   * Download tarball via Registry's /api/skills/:name/versions/:version/download API
    */
   private async installFromRegistryLocal(
     _skillInfo: SkillInfo, // 保留参数以便未来扩展（如日志记录）

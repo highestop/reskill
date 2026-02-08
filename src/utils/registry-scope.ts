@@ -26,39 +26,6 @@ const REGISTRY_SCOPE_MAP: Record<string, string> = {
 };
 
 /**
- * Registry API prefix mapping
- *
- * rush-app hosts reskill APIs under /api/reskill/ prefix.
- * Default for unlisted registries: '/api'
- */
-const REGISTRY_API_PREFIX: Record<string, string> = {
-  'https://rush-test.zhenguanyu.com': '/api/reskill',
-  'https://rush.zhenguanyu.com': '/api/reskill',
-  'http://localhost:3000': '/api/reskill',
-  // Note: reskill-test.zhenguanyu.com (legacy reskill-app) is intentionally
-  // NOT listed here — it uses the default '/api' prefix.
-};
-
-/**
- * Get the API path prefix for a given registry URL
- *
- * @param registryUrl - Registry URL
- * @returns API prefix string (e.g., '/api' or '/api/reskill')
- *
- * @example
- * getApiPrefix('https://rush-test.zhenguanyu.com') // '/api/reskill'
- * getApiPrefix('https://reskill.info') // '/api'
- * getApiPrefix('https://unknown.com') // '/api'
- */
-export function getApiPrefix(registryUrl: string): string {
-  if (!registryUrl) {
-    return '/api';
-  }
-  const normalized = registryUrl.endsWith('/') ? registryUrl.slice(0, -1) : registryUrl;
-  return REGISTRY_API_PREFIX[normalized] || '/api';
-}
-
-/**
  * Parsed skill name result
  */
 export interface ParsedSkillName {
