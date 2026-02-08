@@ -29,8 +29,8 @@ import { RegistryResolver } from './registry-resolver.js';
 import {
   discoverSkillsInDir,
   filterSkillsByName,
-  parseSkillFromDir,
   type ParsedSkillWithPath,
+  parseSkillFromDir,
 } from './skill-parser.js';
 
 /**
@@ -749,7 +749,10 @@ export class SkillManager {
     options: InstallOptions & { listOnly?: boolean } = {},
   ): Promise<
     | { listOnly: true; skills: ParsedSkillWithPath[] }
-    | { listOnly: false; installed: Array<{ skill: InstalledSkill; results: Map<AgentType, InstallResult> }> }
+    | {
+        listOnly: false;
+        installed: Array<{ skill: InstalledSkill; results: Map<AgentType, InstallResult> }>;
+      }
   > {
     const { listOnly = false, force = false, save = true, mode = 'symlink' } = options;
 
@@ -819,9 +822,7 @@ export class SkillManager {
             logger.info(`${skillInfo.name}@${gitRef} is already installed, skipping`);
             continue;
           }
-          logger.warn(
-            `${skillInfo.name} is already installed. Use --force to reinstall.`,
-          );
+          logger.warn(`${skillInfo.name} is already installed. Use --force to reinstall.`);
           continue;
         }
       }
@@ -1079,7 +1080,10 @@ export class SkillManager {
     // 解析 skill 标识（获取 fullName 和 version）
     const parsed = parseSkillIdentifier(ref);
     const registryUrl = getRegistryUrl(parsed.scope);
-    const client = new RegistryClient({ registry: registryUrl, apiPrefix: getApiPrefix(registryUrl) });
+    const client = new RegistryClient({
+      registry: registryUrl,
+      apiPrefix: getApiPrefix(registryUrl),
+    });
 
     // 新增：先查询 skill 信息获取 source_type
     let skillInfo: SkillInfo;

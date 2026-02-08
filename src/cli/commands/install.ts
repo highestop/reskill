@@ -813,7 +813,10 @@ export const installCommand = new Command('install')
   .option('--mode <mode>', 'Installation mode: symlink or copy')
   .option('-y, --yes', 'Skip confirmation prompts')
   .option('--all', 'Install to all agents (implies -y -g)')
-  .option('-s, --skill <names...>', 'Select specific skill(s) by name from a multi-skill repository')
+  .option(
+    '-s, --skill <names...>',
+    'Select specific skill(s) by name from a multi-skill repository',
+  )
   .option('--list', 'List available skills in the repository without installing')
   .action(async (skills: string[], options: InstallOptions) => {
     // Handle --all flag implications
@@ -835,8 +838,7 @@ export const installCommand = new Command('install')
       // Multi-skill path (single ref + --skill or --list): list only skips scope/mode/agents
       const hasMultiSkillFlags =
         ctx.options.list === true || (ctx.options.skill && ctx.options.skill.length > 0);
-      const isMultiSkillPath =
-        !ctx.isReinstallAll && ctx.skills.length === 1 && hasMultiSkillFlags;
+      const isMultiSkillPath = !ctx.isReinstallAll && ctx.skills.length === 1 && hasMultiSkillFlags;
 
       // Warn if --skill/--list used with multiple refs (flags will be ignored)
       if (ctx.skills.length > 1 && hasMultiSkillFlags) {
