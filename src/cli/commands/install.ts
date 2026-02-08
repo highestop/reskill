@@ -486,18 +486,19 @@ async function installMultiSkillFromRepo(
   if (listOnly) {
     spinner.start('Discovering skills...');
     const result = await skillManager.installSkillsFromRepo(ref, [], [], { listOnly: true });
-    spinner.stop(`Found ${(result as { skills: unknown[] }).skills.length} skill(s)`);
-    if (!('skills' in result) || result.skills.length === 0) {
+    if (!result.listOnly || result.skills.length === 0) {
+      spinner.stop('No skills found');
       p.outro(chalk.dim('No skills found.'));
       return;
     }
-    console.log();
+    spinner.stop(`Found ${result.skills.length} skill(s)`);
+    p.log.message('');
     p.log.step(chalk.bold('Available skills'));
     for (const s of result.skills) {
       p.log.message(`  ${chalk.cyan(s.name)}`);
       p.log.message(`    ${chalk.dim(s.description)}`);
     }
-    console.log();
+    p.log.message('');
     p.outro(chalk.dim('Use --skill <name> to install specific skills.'));
     return;
   }
@@ -520,17 +521,31 @@ async function installMultiSkillFromRepo(
 
   spinner.start('Installing skills...');
   const result = await skillManager.installSkillsFromRepo(ref, skillNames, targetAgents, {
+    force: ctx.options.force,
     save: ctx.options.save !== false && !installGlobally,
     mode: installMode,
   });
 
   spinner.stop('Installation complete');
 
-  if (result.listOnly) return;
-  const installed = result.installed;
+  if (result.listOnly) return; // Type narrowing for discriminated union
+  const { installed, skipped } = result;
+
+  if (installed.length === 0 && skipped.length > 0) {
+    const skipLines = skipped.map((s) => `  ${chalk.dim('–')} ${s.name}: ${chalk.dim(s.reason)}`);
+    p.note(skipLines.join('\n'), chalk.yellow('All skills were already installed'));
+    p.log.info('Use --force to reinstall.');
+    return;
+  }
+
   const resultLines = installed.map(
     (r) => `  ${chalk.green('✓')} ${r.skill.name}@${r.skill.version}`,
   );
+  if (skipped.length > 0) {
+    for (const s of skipped) {
+      resultLines.push(`  ${chalk.dim('–')} ${s.name}: ${chalk.dim(s.reason)}`);
+    }
+  }
   p.note(resultLines.join('\n'), chalk.green(`Installed ${installed.length} skill(s)`));
 
   if (!installGlobally && installed.length > 0 && ctx.configLoader.exists()) {
@@ -811,7 +826,10 @@ export const installCommand = new Command('install')
   .option('--mode <mode>', 'Installation mode: symlink or copy')
   .option('-y, --yes', 'Skip confirmation prompts')
   .option('--all', 'Install to all agents (implies -y -g)')
-  .option('-s, --skill <names...>', 'Select specific skill(s) by name from a multi-skill repository')
+  .option(
+    '-s, --skill <names...>',
+    'Select specific skill(s) by name from a multi-skill repository',
+  )
   .option('--list', 'List available skills in the repository without installing')
   .action(async (skills: string[], options: InstallOptions) => {
     // Handle --all flag implications
@@ -831,10 +849,14 @@ export const installCommand = new Command('install')
       const spinner = p.spinner();
 
       // Multi-skill path (single ref + --skill or --list): list only skips scope/mode/agents
-      const isMultiSkillPath =
-        !ctx.isReinstallAll &&
-        ctx.skills.length === 1 &&
-        (ctx.options.list === true || (ctx.options.skill && ctx.options.skill.length > 0));
+      const hasMultiSkillFlags =
+        ctx.options.list === true || (ctx.options.skill && ctx.options.skill.length > 0);
+      const isMultiSkillPath = !ctx.isReinstallAll && ctx.skills.length === 1 && hasMultiSkillFlags;
+
+      // Warn if --skill/--list used with multiple refs (flags will be ignored)
+      if (ctx.skills.length > 1 && hasMultiSkillFlags) {
+        p.log.warn('--skill and --list are only supported with a single repository reference');
+      }
 
       let targetAgents: AgentType[];
       let installGlobally: boolean;

@@ -29,8 +29,8 @@ import { RegistryResolver } from './registry-resolver.js';
 import {
   discoverSkillsInDir,
   filterSkillsByName,
-  parseSkillFromDir,
   type ParsedSkillWithPath,
+  parseSkillFromDir,
 } from './skill-parser.js';
 
 /**
@@ -749,9 +749,16 @@ export class SkillManager {
     options: InstallOptions & { listOnly?: boolean } = {},
   ): Promise<
     | { listOnly: true; skills: ParsedSkillWithPath[] }
-    | { listOnly: false; installed: Array<{ skill: InstalledSkill; results: Map<AgentType, InstallResult> }> }
+    | {
+        listOnly: false;
+        installed: Array<{
+          skill: InstalledSkill;
+          results: Map<AgentType, InstallResult>;
+        }>;
+        skipped: Array<{ name: string; reason: string }>;
+      }
   > {
-    const { listOnly = false, save = true, mode = 'symlink' } = options;
+    const { listOnly = false, force = false, save = true, mode = 'symlink' } = options;
 
     if (this.isRegistrySource(ref) || this.isHttpSource(ref)) {
       throw new Error(
@@ -804,14 +811,38 @@ export class SkillManager {
       installDir: customInstallDir,
     });
 
-    const installed: Array<{ skill: InstalledSkill; results: Map<AgentType, InstallResult> }> = [];
+    const installed: Array<{
+      skill: InstalledSkill;
+      results: Map<AgentType, InstallResult>;
+    }> = [];
+    const skipped: Array<{ name: string; reason: string }> = [];
 
     for (const skillInfo of selected) {
       const semanticVersion = skillInfo.version ?? gitRef;
+
+      // Skip already-installed skills unless --force is set
+      if (!force) {
+        const existingSkill = this.getInstalledSkill(skillInfo.name);
+        if (existingSkill) {
+          const locked = this.lockManager.get(skillInfo.name);
+          const lockedRef = locked?.ref || locked?.version;
+          if (lockedRef === gitRef) {
+            const reason = `already installed at ${gitRef}`;
+            logger.info(`${skillInfo.name}@${gitRef} is already installed, skipping`);
+            skipped.push({ name: skillInfo.name, reason });
+            continue;
+          }
+          // Different version installed — allow upgrade without --force
+          // Only skip when the exact same ref is already locked
+        }
+      }
+
       logger.package(
         `Installing ${skillInfo.name}@${gitRef} to ${targetAgents.length} agent(s)...`,
       );
 
+      // Note: force is handled at the SkillManager level (skip-if-installed check above).
+      // The Installer always overwrites (remove + copy), so no force flag is needed there.
       const results = await installer.installToAgents(
         skillInfo.dirPath,
         skillInfo.name,
@@ -848,7 +879,7 @@ export class SkillManager {
       });
     }
 
-    return { listOnly: false, installed };
+    return { listOnly: false, installed, skipped };
   }
 
   /**
@@ -1061,7 +1092,10 @@ export class SkillManager {
     // 解析 skill 标识（获取 fullName 和 version）
     const parsed = parseSkillIdentifier(ref);
     const registryUrl = getRegistryUrl(parsed.scope);
-    const client = new RegistryClient({ registry: registryUrl, apiPrefix: getApiPrefix(registryUrl) });
+    const client = new RegistryClient({
+      registry: registryUrl,
+      apiPrefix: getApiPrefix(registryUrl),
+    });
 
     // 新增：先查询 skill 信息获取 source_type
     let skillInfo: SkillInfo;
