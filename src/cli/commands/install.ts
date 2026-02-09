@@ -490,18 +490,19 @@ async function installMultiSkillFromRepo(
   if (listOnly) {
     spinner.start('Discovering skills...');
     const result = await skillManager.installSkillsFromRepo(ref, [], [], { listOnly: true });
-    spinner.stop(`Found ${(result as { skills: unknown[] }).skills.length} skill(s)`);
-    if (!('skills' in result) || result.skills.length === 0) {
+    if (!result.listOnly || result.skills.length === 0) {
+      spinner.stop('No skills found.');
       p.outro(chalk.dim('No skills found.'));
       return;
     }
-    console.log();
+    spinner.stop(`Found ${result.skills.length} skill(s)`);
+    p.log.message('');
     p.log.step(chalk.bold('Available skills'));
     for (const s of result.skills) {
       p.log.message(`  ${chalk.cyan(s.name)}`);
       p.log.message(`    ${chalk.dim(s.description)}`);
     }
-    console.log();
+    p.log.message('');
     p.outro(chalk.dim('Use --skill <name> to install specific skills.'));
     return;
   }
@@ -526,12 +527,14 @@ async function installMultiSkillFromRepo(
   const result = await skillManager.installSkillsFromRepo(ref, skillNames, targetAgents, {
     save: ctx.options.save !== false && !installGlobally,
     mode: installMode,
+    registry: ctx.options.registry,
   });
 
   spinner.stop('Installation complete');
 
+  // listOnly is always false here (the listOnly path returns early above)
   if (result.listOnly) return;
-  const installed = result.installed;
+  const { installed } = result;
   const resultLines = installed.map(
     (r) => `  ${chalk.green('✓')} ${r.skill.name}@${r.skill.version}`,
   );

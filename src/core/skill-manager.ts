@@ -723,7 +723,7 @@ export class SkillManager {
     results: Map<AgentType, InstallResult>;
   }> {
     // Detect source type and delegate to appropriate installer
-    // Priority: Registry > HTTP > Git (registry 优先，因为它的格式最受限)
+    // Priority: Registry > HTTP > Git (registry first, as its format is most constrained)
     if (this.isRegistrySource(ref)) {
       return this.installToAgentsFromRegistry(ref, targetAgents, options);
     }
@@ -1058,12 +1058,12 @@ export class SkillManager {
   }> {
     const { force = false, save = true, mode = 'symlink' } = options;
 
-    // 解析 skill 标识（获取 fullName 和 version）
+    // Parse skill identifier (extract fullName and version)
     const parsed = parseSkillIdentifier(ref);
     const registryUrl = options.registry || getRegistryUrl(parsed.scope);
     const client = new RegistryClient({ registry: registryUrl });
 
-    // 新增：先查询 skill 信息获取 source_type
+    // Query skill info to determine source_type
     let skillInfo: SkillInfo;
     try {
       skillInfo = await client.getSkillInfo(parsed.fullName);
@@ -1076,13 +1076,13 @@ export class SkillManager {
       }
     }
 
-    // 新增：根据 source_type 分支
+    // Branch based on source_type
     const sourceType = skillInfo.source_type;
     if (sourceType && sourceType !== 'registry') {
       return this.installFromWebPublished(skillInfo, parsed, targetAgents, options);
     }
 
-    // 1. Resolve registry skill（现有流程）
+    // 1. Resolve registry skill
     logger.package(`Resolving ${ref} from registry...`);
     const resolved = await this.registryResolver.resolve(ref, options.registry);
     const {
@@ -1187,7 +1187,7 @@ export class SkillManager {
       );
     }
 
-    // 9. Build the InstalledSkill to return
+    // 10. Build the InstalledSkill to return
     const skill: InstalledSkill = {
       name: shortName,
       path: extractedPath,
@@ -1199,16 +1199,17 @@ export class SkillManager {
   }
 
   // ============================================================================
-  // Web-published skill installation (页面发布适配)
+  // Web-published skill installation
   // ============================================================================
 
   /**
-   * 安装页面发布的 skill
+   * Install a web-published skill.
    *
-   * 页面发布的 skill 不支持版本管理，根据 source_type 分支到不同的安装逻辑：
-   * - github/gitlab: 复用 installToAgentsFromGit
-   * - oss_url/custom_url: 复用 installToAgentsFromHttp
-   * - local: 通过 Registry API 下载 tarball
+   * Web-published skills do not support versioning. Branches to different
+   * installation logic based on source_type:
+   * - github/gitlab: reuses installToAgentsFromGit
+   * - oss_url/custom_url: reuses installToAgentsFromHttp
+   * - local: downloads tarball via Registry API
    */
   private async installFromWebPublished(
     skillInfo: SkillInfo,
@@ -1221,7 +1222,7 @@ export class SkillManager {
   }> {
     const { source_type, source_url } = skillInfo;
 
-    // 页面发布的 skill 不支持版本指定
+    // Web-published skills do not support version specifiers
     if (parsed.version && parsed.version !== 'latest') {
       throw new Error(
         `Version specifier not supported for web-published skills.\n` +
@@ -1239,17 +1240,17 @@ export class SkillManager {
     switch (source_type) {
       case 'github':
       case 'gitlab':
-        // source_url 是完整的 Git URL（包含 ref 和 path）
-        // 复用已有的 Git 安装逻辑
+        // source_url is a full Git URL (includes ref and path)
+        // Reuse existing Git installation logic
         return this.installToAgentsFromGit(source_url, targetAgents, options);
 
       case 'oss_url':
       case 'custom_url':
-        // 直接下载 URL
+        // Direct download URL
         return this.installToAgentsFromHttp(source_url, targetAgents, options);
 
       case 'local':
-        // 通过 Registry API 下载 tarball
+        // Download tarball via Registry API
         return this.installFromRegistryLocal(skillInfo, parsed, targetAgents, options);
 
       default:
@@ -1258,7 +1259,7 @@ export class SkillManager {
   }
 
   /**
-   * 安装 Local Folder 模式发布的 skill
+   * Install a skill published via "local folder" mode.
    *
    * Downloads tarball via RegistryClient (handles 302 redirects to signed OSS URLs),
    * then extracts and installs using the same flow as registry source_type.

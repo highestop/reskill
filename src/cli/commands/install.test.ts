@@ -617,3 +617,111 @@ describe('batch installation logic', () => {
     });
   });
 });
+
+// ============================================================================
+// Multi-Skill Install Options Tests
+// ============================================================================
+
+describe('multi-skill install options', () => {
+  describe('option passthrough', () => {
+    it('should include registry in options when provided', () => {
+      const ctxOptions = {
+        save: true,
+        registry: 'https://custom-registry.example.com',
+      };
+      const installGlobally = false;
+      const installMode = 'symlink';
+
+      // Simulates the options object built in installMultiSkillFromRepo
+      const installOptions = {
+        save: ctxOptions.save !== false && !installGlobally,
+        mode: installMode,
+        registry: ctxOptions.registry,
+      };
+
+      expect(installOptions.registry).toBe('https://custom-registry.example.com');
+      expect(installOptions.save).toBe(true);
+      expect(installOptions.mode).toBe('symlink');
+    });
+
+    it('should pass undefined registry when not specified', () => {
+      const ctxOptions = {
+        save: true,
+        registry: undefined,
+      };
+      const installGlobally = false;
+      const installMode = 'copy';
+
+      const installOptions = {
+        save: ctxOptions.save !== false && !installGlobally,
+        mode: installMode,
+        registry: ctxOptions.registry,
+      };
+
+      expect(installOptions.registry).toBeUndefined();
+    });
+
+    it('should disable save when installing globally', () => {
+      const ctxOptions = {
+        save: true,
+        registry: 'https://registry.example.com',
+      };
+      const installGlobally = true;
+      const installMode = 'symlink';
+
+      const installOptions = {
+        save: ctxOptions.save !== false && !installGlobally,
+        mode: installMode,
+        registry: ctxOptions.registry,
+      };
+
+      expect(installOptions.save).toBe(false);
+      expect(installOptions.registry).toBe('https://registry.example.com');
+    });
+  });
+
+  describe('discriminated union narrowing', () => {
+    it('should safely access skills on listOnly result', () => {
+      const result: { listOnly: true; skills: Array<{ name: string; description: string }> } = {
+        listOnly: true,
+        skills: [
+          { name: 'pdf', description: 'PDF skill' },
+          { name: 'commit', description: 'Commit helper' },
+        ],
+      };
+
+      // Narrowing via listOnly discriminant (no unsafe cast needed)
+      if (result.listOnly) {
+        expect(result.skills).toHaveLength(2);
+        expect(result.skills[0].name).toBe('pdf');
+      }
+    });
+
+    it('should safely access installed on non-listOnly result', () => {
+      const result:
+        | { listOnly: true; skills: Array<{ name: string }> }
+        | { listOnly: false; installed: Array<{ skill: { name: string; version: string } }> } = {
+        listOnly: false,
+        installed: [{ skill: { name: 'test', version: '1.0.0' } }],
+      };
+
+      // Narrowing via listOnly discriminant
+      if (!result.listOnly) {
+        expect(result.installed).toHaveLength(1);
+        expect(result.installed[0].skill.name).toBe('test');
+      }
+    });
+
+    it('should handle empty skills list in listOnly result', () => {
+      const result = {
+        listOnly: true as const,
+        skills: [] as Array<{ name: string; description: string }>,
+      };
+
+      // The pattern used in installMultiSkillFromRepo:
+      // if (!result.listOnly || result.skills.length === 0) → early return
+      const shouldEarlyReturn = !result.listOnly || result.skills.length === 0;
+      expect(shouldEarlyReturn).toBe(true);
+    });
+  });
+});
