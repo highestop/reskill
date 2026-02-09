@@ -513,18 +513,39 @@ describe('GitResolver', () => {
       });
     });
 
-    it('should handle tree/branch/path with version override (@version takes precedence)', () => {
-      // If user provides both tree/branch and @version, tree/branch wins
-      // because tree/branch is detected first before @version stripping
-      // Actually, @version is stripped first, so let's test this edge case
+    it('should parse shorthand with raw/branch/path', () => {
+      const result = resolver.parseRef('github:user/repo/raw/main/assets/data');
+      expect(result).toEqual({
+        registry: 'github',
+        owner: 'user',
+        repo: 'repo',
+        subPath: 'assets/data',
+        version: 'branch:main',
+        raw: 'github:user/repo/raw/main/assets/data',
+      });
+    });
+
+    it('should preserve explicit @version and skip tree/branch heuristic', () => {
+      // When @version is provided, tree/blob/raw should be treated as literal
+      // directory names, not as GitHub web URL indicators
       const result = resolver.parseRef(
         'github:vercel-labs/skills/tree/main/skills/find-skills@v1.0.0',
       );
-      // @version is parsed first (lastIndexOf @), so version = 'v1.0.0'
-      // then remaining = 'vercel-labs/skills/tree/main/skills/find-skills'
-      // tree/main is detected, version is overridden to 'branch:main'
-      expect(result.version).toBe('branch:main');
-      expect(result.subPath).toBe('skills/find-skills');
+      expect(result.version).toBe('v1.0.0');
+      expect(result.subPath).toBe('tree/main/skills/find-skills');
+    });
+
+    it('should not false-positive when monorepo subpath is literally named tree', () => {
+      // A monorepo with a directory literally called "tree"
+      const result = resolver.parseRef('github:org/repo/tree/utils@v1.0.0');
+      expect(result).toEqual({
+        registry: 'github',
+        owner: 'org',
+        repo: 'repo',
+        subPath: 'tree/utils',
+        version: 'v1.0.0',
+        raw: 'github:org/repo/tree/utils@v1.0.0',
+      });
     });
   });
 

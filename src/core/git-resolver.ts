@@ -137,7 +137,9 @@ export class GitResolver {
 
     // Check for GitHub/GitLab web URL pattern: owner/repo/(tree|blob|raw)/branch/path
     // e.g. vercel-labs/skills/tree/main/skills/find-skills
-    if (parts.length >= 4 && ['tree', 'blob', 'raw'].includes(parts[2])) {
+    // Only apply this heuristic when no explicit @version is provided.
+    // With @version, treat tree/blob/raw as literal directory names (standard monorepo subPath).
+    if (parts.length >= 4 && ['tree', 'blob', 'raw'].includes(parts[2]) && !version) {
       const branch = parts[3];
       version = `branch:${branch}`;
       subPath = parts.length > 4 ? parts.slice(4).join('/') : undefined;
