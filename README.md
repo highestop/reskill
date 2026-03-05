@@ -75,7 +75,8 @@ npx reskill@latest <command>  # Or use npx directly
 | `-f, --force`             | `install`                            | Force reinstall even if already installed                     |
 | `-s, --skill <names...>`  | `install`                            | Select specific skill(s) by name from a multi-skill repo      |
 | `--list`                  | `install`                            | List available skills in the repository without installing    |
-| `-r, --registry <url>`    | `install`                            | Registry URL override for registry-based installs             |
+| `-r, --registry <url>`    | `install`, `publish`                 | Registry URL override for registry-based installs             |
+| `-t, --token <token>`     | `install`                            | Auth token for registry API requests (for CI/CD)              |
 | `-j, --json`              | `list`, `info`, `outdated`, `doctor` | Output as JSON                                                |
 
 Run `reskill <command> --help` for complete options and detailed usage.
@@ -222,6 +223,21 @@ reskill publish
 ```
 
 For detailed publishing guidelines, see the [CLI Specification](./docs/cli-spec.md#publish).
+
+### Installing Private Skills
+
+After logging in with `reskill login`, the token stored in `~/.reskillrc` is automatically used during `reskill install` to access private skills:
+
+```bash
+# Token is automatically read from ~/.reskillrc (requires --registry to match)
+reskill install @scope/private-skill --registry https://your-registry.com
+
+# Or use RESKILL_TOKEN env var (works without --registry)
+RESKILL_TOKEN=<token> reskill install @scope/private-skill
+
+# Or pass token directly (for CI/CD)
+reskill install @scope/private-skill --registry https://your-registry.com --token <token>
+```
 
 ## Environment Variables
 
