@@ -568,6 +568,132 @@ description: ${s.description}
       ).rejects.toThrow(/No valid skills found/);
     });
   });
+
+  describe('detectSkillsInRef', () => {
+    let repoDir: string;
+
+    function createLocalRepo(
+      structure: 'single' | 'multi' | 'empty',
+    ): string {
+      const repoPath = path.join(repoDir, `detect-${structure}-repo`);
+      fs.mkdirSync(repoPath, { recursive: true });
+
+      if (structure === 'single') {
+        // Single skill at root
+        fs.writeFileSync(
+          path.join(repoPath, 'SKILL.md'),
+          '---\nname: my-skill\ndescription: A skill\n---\n# my-skill\n',
+        );
+      } else if (structure === 'multi') {
+        // Parent dir with child skills (no root SKILL.md)
+        const skillsDir = path.join(repoPath, 'skills');
+        fs.mkdirSync(skillsDir, { recursive: true });
+        for (const name of ['alpha', 'beta']) {
+          const dir = path.join(skillsDir, name);
+          fs.mkdirSync(dir, { recursive: true });
+          fs.writeFileSync(
+            path.join(dir, 'SKILL.md'),
+            `---\nname: ${name}\ndescription: ${name} skill\n---\n# ${name}\n`,
+          );
+        }
+      } else {
+        // Empty repo — no SKILL.md at all
+        fs.writeFileSync(path.join(repoPath, 'README.md'), '# Empty');
+      }
+
+      execSync('git init -b main', { cwd: repoPath, stdio: 'pipe' });
+      execSync('git config user.email "test@test.com"', { cwd: repoPath, stdio: 'pipe' });
+      execSync('git config user.name "Test"', { cwd: repoPath, stdio: 'pipe' });
+      execSync('git add -A', { cwd: repoPath, stdio: 'pipe' });
+      execSync('git commit -m "init"', { cwd: repoPath, stdio: 'pipe' });
+
+      return `file://${repoPath}`;
+    }
+
+    beforeEach(() => {
+      repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'reskill-detect-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(repoDir, { recursive: true, force: true });
+    });
+
+    it('should return single for a repo with root SKILL.md', async () => {
+      const fileUrl = createLocalRepo('single');
+      const result = await skillManager.detectSkillsInRef(fileUrl);
+      expect(result.type).toBe('single');
+    });
+
+    it('should return multi with discovered skills for a parent directory', async () => {
+      const fileUrl = createLocalRepo('multi');
+      const result = await skillManager.detectSkillsInRef(fileUrl);
+      expect(result.type).toBe('multi');
+      if (result.type !== 'multi') throw new Error('expected multi');
+      const names = result.skills.map((s) => s.name).sort();
+      expect(names).toEqual(['alpha', 'beta']);
+    });
+
+    it('should fall back to single when repo has no SKILL.md at all (caller handles error)', async () => {
+      // When no skills exist anywhere, detectSkillsInRef returns 'single' so
+      // the caller proceeds to installToAgents, which produces a clear error.
+      const fileUrl = createLocalRepo('empty');
+      const result = await skillManager.detectSkillsInRef(fileUrl);
+      expect(result.type).toBe('single');
+    });
+
+    it('should return single for registry refs', async () => {
+      const result = await skillManager.detectSkillsInRef('@scope/name');
+      expect(result.type).toBe('single');
+    });
+
+    it('should return single for HTTP refs', async () => {
+      const result = await skillManager.detectSkillsInRef('https://example.com/skill.tar.gz');
+      expect(result.type).toBe('single');
+    });
+
+    it('should scope discovery to subPath when ref has subPath (e.g. repo.git/subdir)', async () => {
+      // Create a repo with skills in different directories:
+      //   subdir/skills/alpha/SKILL.md  (inside subPath)
+      //   other/SKILL.md               (outside subPath, should NOT be discovered)
+      const repoPath = path.join(repoDir, 'subpath-test.git');
+      fs.mkdirSync(repoPath, { recursive: true });
+
+      // Skill inside subPath
+      const alphaDir = path.join(repoPath, 'subdir', 'skills', 'alpha');
+      fs.mkdirSync(alphaDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(alphaDir, 'SKILL.md'),
+        '---\nname: alpha\ndescription: Alpha skill\n---\n# alpha\n',
+      );
+
+      // Skill outside subPath — must NOT appear in results
+      const otherDir = path.join(repoPath, 'other');
+      fs.mkdirSync(otherDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(otherDir, 'SKILL.md'),
+        '---\nname: other\ndescription: Other skill\n---\n# other\n',
+      );
+
+      execSync('git init -b main', { cwd: repoPath, stdio: 'pipe' });
+      execSync('git config user.email "test@test.com"', { cwd: repoPath, stdio: 'pipe' });
+      execSync('git config user.name "Test"', { cwd: repoPath, stdio: 'pipe' });
+      execSync('git add -A', { cwd: repoPath, stdio: 'pipe' });
+      execSync('git commit -m "init"', { cwd: repoPath, stdio: 'pipe' });
+
+      // file:///…/subpath-test.git/subdir → parsed.subPath = 'subdir'
+      // CacheManager.cache() copies only the subdir/ content, so discovery
+      // is scoped to subdir/ and the 'other' skill should not appear.
+      const fileUrl = `file://${repoPath}/subdir`;
+      const result = await skillManager.detectSkillsInRef(fileUrl);
+
+      expect(result.type).toBe('multi');
+      if (result.type !== 'multi') throw new Error('expected multi');
+      const names = result.skills.map((s) => s.name).sort();
+      expect(names).toEqual(['alpha']);
+      // 'other' should NOT be in the results — it's outside subPath
+      expect(names).not.toContain('other');
+    });
+  });
 });
 
 // Bug fix tests - These tests reproduce bugs before fixing them
