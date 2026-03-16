@@ -223,12 +223,12 @@ export const DEFAULT_RULES: readonly ScanRule[] = [
       findLineMatches(content, [
         /ignore\s+(all\s+)?previous\s+instructions/i,
         /disregard\s+(all\s+)?(prior|previous|above)\s+(instructions|rules|context)/i,
-        /you\s+are\s+now\s+/i,
+        /you\s+are\s+now\s+(?:(?:a|an)\s+)?(?:(?:\w+\s+){0,3}(?:agent|ai|assistant|bot|model|character|persona|entity|system)|DAN\b|jailbr\w*|unrestricted|unfiltered|free\s+from)/i,
         /from\s+now\s+on[,\s]+you\s+are/i,
         /new\s+system\s+prompt/i,
         /override\s+(your|the)\s+(system|safety|security)\s+(prompt|rules|instructions)/i,
         /forget\s+(?:all\s+)?(?:your\s+)?(?:previous\s+|prior\s+)?(?:instructions|rules|constraints)/i,
-        /entering\s+(a\s+)?new\s+(mode|context|session)/i,
+        /(?:you\s+are|you're)\s+(?:now\s+)?entering\s+(?:a\s+)?new\s+(?:mode|context|session)/i,
       ]),
   },
 
