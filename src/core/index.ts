@@ -1,4 +1,14 @@
 export type { AgentConfig, AgentType } from './agent-registry.js';
+// Content scanning
+export type {
+  RiskLevel,
+  ScanFinding,
+  ScannerOptions,
+  ScanResult,
+  ScanRule,
+  ScanRuleMatch,
+} from './content-scanner.js';
+export { ContentScanError, ContentScanner, DEFAULT_RULES, maskSafeZones } from './content-scanner.js';
 // Multi-Agent support
 export {
   agents,

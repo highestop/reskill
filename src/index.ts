@@ -11,7 +11,11 @@ export {
   agents,
   CacheManager,
   ConfigLoader,
+  // Content scanning
+  ContentScanError,
+  ContentScanner,
   DEFAULT_REGISTRIES,
+  DEFAULT_RULES,
   detectInstalledAgents,
   GitResolver,
   generateSkillMd,
@@ -24,6 +28,7 @@ export {
   Installer,
   isValidAgentType,
   LockManager,
+  maskSafeZones,
   parseSkillFromDir,
   // SKILL.md parsing
   parseSkillMd,
@@ -48,6 +53,13 @@ export type {
   ParsedSkill,
   ParsedSkillRef,
   ParsedVersion,
+  // Content scanning types
+  RiskLevel,
+  ScanFinding,
+  ScannerOptions,
+  ScanResult,
+  ScanRule,
+  ScanRuleMatch,
   SkillJson,
   SkillMdFrontmatter,
   SkillsJson,
