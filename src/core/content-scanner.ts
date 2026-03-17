@@ -526,6 +526,9 @@ export class ContentScanner {
    * Convenience wrapper that reads the file then calls scan().
    */
   scanFile(filePath: string): ScanResult {
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`);
+    }
     const content = fs.readFileSync(filePath, 'utf-8');
     return this.scan(content);
   }

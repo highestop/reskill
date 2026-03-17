@@ -11,6 +11,7 @@ import { createInterface } from 'node:readline';
 import { Command } from 'commander';
 import * as semver from 'semver';
 import { AuthManager } from '../../core/auth-manager.js';
+import { ContentScanner, type ScanResult } from '../../core/content-scanner.js';
 import {
   type GitInfo,
   PublishError,
@@ -23,7 +24,7 @@ import {
   SkillValidator,
   type ValidationResult,
 } from '../../core/skill-validator.js';
-import { ContentScanner, type ScanResult } from '../../core/content-scanner.js';
+import { exists } from '../../utils/fs.js';
 import { logger } from '../../utils/logger.js';
 import { resolveRegistry } from '../../utils/registry.js';
 import { buildFullSkillName, getScopeForRegistry } from '../../utils/registry-scope.js';
@@ -543,7 +544,7 @@ async function publishAction(skillPath: string, options: PublishOptions): Promis
 
     // 3.5. Content security scan
     const skillMdPath = path.join(absolutePath, 'SKILL.md');
-    if (fs.existsSync(skillMdPath)) {
+    if (exists(skillMdPath)) {
       const scanner = new ContentScanner();
       const scanResult = scanner.scanFile(skillMdPath);
       displayScanFindings(scanResult);
