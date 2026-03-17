@@ -221,6 +221,7 @@ export const DEFAULT_RULES: readonly ScanRule[] = [
     skipSafeZones: true,
     check: (content) =>
       findLineMatches(content, [
+        // English patterns
         /ignore\s+(all\s+)?previous\s+instructions/i,
         /disregard\s+(all\s+)?(prior|previous|above)\s+(instructions|rules|context)/i,
         /you\s+are\s+now\s+(?:(?:a|an)\s+)?(?:(?:\w+\s+){0,3}(?:agent|ai|assistant|bot|model|character|persona|entity|system)|DAN\b|jailbr\w*|unrestricted|unfiltered|free\s+from)/i,
@@ -229,6 +230,18 @@ export const DEFAULT_RULES: readonly ScanRule[] = [
         /override\s+(your|the)\s+(system|safety|security)\s+(prompt|rules|instructions)/i,
         /forget\s+(?:all\s+)?(?:your\s+)?(?:previous\s+|prior\s+)?(?:instructions|rules|constraints)/i,
         /(?:you\s+are|you're)\s+(?:now\s+)?entering\s+(?:a\s+)?new\s+(?:mode|context|session)/i,
+        // Chinese patterns (中文提示词注入)
+        /[忽无][略视]\s*(所有\s*)?(之前的?|先前的?|以前的?)?\s*(指令|指示|规则|约束|限制)/,
+        /你现在是/,
+        /从现在开始.{0,10}你是/,
+        /新的系统提示词/,
+        /[覆改]写?\s*(你的|系统)\s*(提示词|规则|指令|安全)/,
+        /忘记\s*(所有\s*)?(之前的?|先前的?)?\s*(指令|指示|规则|约束)/,
+        /进入.{0,5}新的?\s*(模式|上下文|会话)/,
+        /不要遵守.{0,10}(安全|限制|规则|约束)/,
+        /解除.{0,5}(限制|约束|安全)/,
+        /无限制模式/,
+        /安全模式已关闭/,
       ]),
   },
 
@@ -336,6 +349,7 @@ export const DEFAULT_RULES: readonly ScanRule[] = [
         'execute|delete|remove|send|transmit|modify|overwrite|install|download|upload|run|write|create|destroy|drop';
 
       const patterns = [
+        // English patterns
         new RegExp(`silently\\s+(?:${actionVerbs})`, 'i'),
         new RegExp(
           `without\\s+telling\\s+the\\s+user.{0,30}(?:${actionVerbs})`,
@@ -357,11 +371,20 @@ export const DEFAULT_RULES: readonly ScanRule[] = [
           `keep\\s+(?:this|it)\\s+(?:a\\s+)?secret\\s+from\\s+(?:the\\s+)?user`,
           'i',
         ),
+        // Chinese patterns (中文隐蔽指令)
+        /悄悄地?\s*(?:执行|删除|移除|发送|传输|修改|覆盖|安装|下载|上传|运行|写入|创建|销毁|丢弃)/,
+        /不要告诉用户/,
+        /不要让用户知道/,
+        /对用户隐藏/,
+        /在用户不知情的情况下/,
+        /瞒着用户/,
       ];
 
       // Safe patterns to exclude (common in legitimate DevOps/automation skills)
       const safePatterns = [
         /silently\s+(?:ignore|skip|fail|discard|suppress|continue|pass|drop|swallow)/i,
+        // Chinese safe patterns (中文合法自动化用语)
+        /悄悄地?\s*(?:忽略|跳过|丢弃|抑制|继续|静默)/,
       ];
 
       const lines = content.split('\n');
