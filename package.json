@@ -17,6 +17,10 @@
     },
     "./cli": {
       "import": "./dist/cli/index.js"
+    },
+    "./scanner": {
+      "import": "./dist/scanner.js",
+      "types": "./dist/scanner.d.ts"
     }
   },
   "files": [

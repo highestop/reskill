@@ -27,6 +27,18 @@ export type {
   SkillMdFrontmatter,
 } from '../core/skill-parser.js';
 
+/**
+ * Content scanning types
+ */
+export type {
+  RiskLevel,
+  ScanFinding,
+  ScannerOptions,
+  ScanResult,
+  ScanRule,
+  ScanRuleMatch,
+} from '../core/content-scanner.js';
+
 // ============================================================================
 // skills.json - Project dependency configuration
 // ============================================================================

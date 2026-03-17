@@ -11,6 +11,7 @@ import { createInterface } from 'node:readline';
 import { Command } from 'commander';
 import * as semver from 'semver';
 import { AuthManager } from '../../core/auth-manager.js';
+import { ContentScanner, type ScanResult } from '../../core/content-scanner.js';
 import {
   type GitInfo,
   PublishError,
@@ -23,6 +24,7 @@ import {
   SkillValidator,
   type ValidationResult,
 } from '../../core/skill-validator.js';
+import { exists } from '../../utils/fs.js';
 import { logger } from '../../utils/logger.js';
 import { resolveRegistry } from '../../utils/registry.js';
 import { buildFullSkillName, getScopeForRegistry } from '../../utils/registry-scope.js';
@@ -459,6 +461,31 @@ function displayDryRunSummary(payload: PublishPayload): void {
   logger.log('No changes made (--dry-run)');
 }
 
+/**
+ * Display content scan findings
+ */
+function displayScanFindings(scanResult: ScanResult): void {
+  if (scanResult.findings.length === 0) {
+    logger.log('  ✓ Content security scan passed');
+    return;
+  }
+
+  logger.newline();
+  logger.log('⚠ Content Security Scan:');
+  logger.newline();
+
+  for (const finding of scanResult.findings) {
+    const levelTag = finding.level.toUpperCase().padEnd(6);
+    const lineInfo = finding.line ? ` (line ${finding.line})` : '';
+    logger.log(`  ${levelTag}  ${finding.rule}${lineInfo}`);
+    logger.log(`          ${finding.message}`);
+    if (finding.snippet) {
+      logger.log(`          > ${finding.snippet}`);
+    }
+    logger.newline();
+  }
+}
+
 // ============================================================================
 // Main Action
 // ============================================================================
@@ -514,6 +541,20 @@ async function publishAction(skillPath: string, options: PublishOptions): Promis
 
     // 3. Validate
     const validation = validator.validate(absolutePath);
+
+    // 3.5. Content security scan
+    const skillMdPath = path.join(absolutePath, 'SKILL.md');
+    if (exists(skillMdPath)) {
+      const scanner = new ContentScanner();
+      const scanResult = scanner.scanFile(skillMdPath);
+      displayScanFindings(scanResult);
+
+      if (!scanResult.passed) {
+        logger.newline();
+        logger.error('Content security scan failed. Fix the issues above before publishing.');
+        process.exit(1);
+      }
+    }
 
     // 4. Get git info
     let gitInfo: GitInfo;

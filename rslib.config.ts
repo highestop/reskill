@@ -12,6 +12,7 @@ export default defineConfig({
     entry: {
       index: './src/index.ts',
       'cli/index': './src/cli/index.ts',
+      scanner: './src/core/content-scanner.ts',
     },
   },
   output: {
