@@ -20,7 +20,12 @@ import { Command } from 'commander';
 import { AuthManager } from '../../core/auth-manager.js';
 import { RegistryClient, RegistryError } from '../../core/registry-client.js';
 import type { GroupDetail, GroupMember, GroupRole, SkillGroup } from '../../types/index.js';
-import { generateSlug, normalizeGroupPath, validateGroupPath } from '../../utils/group-path.js';
+import {
+  generateSlug,
+  normalizeGroupPath,
+  SLUG_REGEX,
+  validateGroupPath,
+} from '../../utils/group-path.js';
 import { logger } from '../../utils/logger.js';
 import { resolveRegistry } from '../../utils/registry.js';
 
@@ -54,8 +59,6 @@ interface MemberAddOptions extends GroupCommandOptions {
 // ============================================================================
 
 const VALID_ROLES: GroupRole[] = ['owner', 'maintainer', 'developer'];
-
-const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 
 /**
  * Validate that a role string is one of the allowed values.
@@ -123,7 +126,9 @@ function displayGroupList(groups: SkillGroup[], json: boolean, tree = false): vo
       const desc = group.description ? chalk.gray(` - ${group.description}`) : '';
       const indent = '  '.repeat(getGroupIndentLevel(group));
       const nodeLabel = group.path.split('/').pop() || group.path;
-      logger.log(`  ${indent}└─ ${chalk.bold.cyan(nodeLabel)}${vis}${desc} ${chalk.gray(`(${group.path})`)}`);
+      logger.log(
+        `  ${indent}└─ ${chalk.bold.cyan(nodeLabel)}${vis}${desc} ${chalk.gray(`(${group.path})`)}`,
+      );
     }
     logger.newline();
     return;
@@ -233,7 +238,9 @@ async function createAction(name: string, options: GroupCreateOptions): Promise<
 
   const slug = generateSlug(name);
   if (!slug) {
-    logger.error('Name must contain at least one ASCII alphanumeric character to generate a valid slug');
+    logger.error(
+      'Name must contain at least one ASCII alphanumeric character to generate a valid slug',
+    );
     process.exit(1);
   }
   if (!SLUG_REGEX.test(slug)) {

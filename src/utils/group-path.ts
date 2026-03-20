@@ -4,7 +4,7 @@
  * Shared by the `group` and `publish` CLI commands.
  */
 
-const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+export const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 const MAX_GROUP_DEPTH = 3;
 const MAX_SEGMENT_LENGTH = 64;
 
@@ -41,7 +41,8 @@ export function generateSlug(name: string): string {
     .replace(/[^a-z0-9-]/g, '')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-    .slice(0, MAX_SEGMENT_LENGTH);
+    .slice(0, MAX_SEGMENT_LENGTH)
+    .replace(/-$/g, '');
 }
 
 /**
